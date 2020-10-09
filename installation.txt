@@ -1,0 +1,11 @@
+# On Raspberrypi
+
+sudo apt update
+sudo apt install python3-dev python3-pip python3-venv
+sudo apt install libatlas-base-dev
+python3 -m venv --system-site-packages ./venv
+source ./venv/bin/activate
+pip install --upgrade pip
+pip3 install https://github.com/lhelontra/tensorflow-on-arm/releases/download/v2.3.0/tensorflow-2.3.0-cp37-none-linux_armv7l.whl
+python -c "import tensorflow as tf;print(tf.reduce_sum(tf.random.normal([1000, 1000])))"
+
