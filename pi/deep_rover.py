@@ -132,8 +132,8 @@ class SessionObserver():
             os.mkdir(folder)
         filename = datetime.today().strftime('%Y-%m-%d_%H-%M-%S-%M-%f.csv')
         self.filehandle = open(folder + "/" + filename, "w+")
-    def write(self, prev_img_loc, move, new_img_location, reward, done, info):
-        self.filehandle.write("%s, %s, %s, %s, %s, %s " % (prev_img_loc, move, new_img_location, reward, done, info))
+    def write(self, prev_img_loc, prev_dist, move, new_img_location, new_dist, reward, done, info):
+        self.filehandle.write("%s, %s, %s, %s, %s, %s, %s, %s" % (prev_img_loc, prev_dist, move, new_img_location, new_dist, reward, done, info))
     def close(self):
         self.filehandle.close()
 
@@ -147,8 +147,8 @@ class Env():
         self.sessionObserver = SessionObserver()
 
     def _is_safe(self):
-        dist = self.ultrasonic.get_distance()
-        if dist < 15:
+        self.dist = self.ultrasonic.get_distance()
+        if self.dist < 15:
             return False
         else:
             return True
@@ -178,18 +178,19 @@ class Env():
             reward = 1
             self._update_done(False)
         
-        return (self.obs, reward, self.done, {})
+        return (self.obs, self.dist, reward, self.done, {})
 
     def step(self, move):
         if self.done:
-            return (self.obs, 0, self.done, {})
+            return (self.obs, self.dist, 0, self.done, {})
         if move == Move.FORWARD and not self._is_safe():
             self._update_done(True)
-            return (self.obs, 0, self.done, {})
+            return (self.obs, self.dist, 0, self.done, {})
         prev_image = self.obs[1]
+        prev_dist = self.dist
         self._step_robot(move)
         result = self._observe()
-        self.sessionObserver.write(prev_image, int(move), result[0][1], result[1], result[2], result[3])
+        self.sessionObserver.write(prev_image, self.dist, int(move), result[0][1], result[1], result[2], result[3], result[4])
         return result
 
     def _step_robot(self, move):
@@ -211,9 +212,9 @@ t.start()
 for game_play in range(100):
     print("Game Play: ", game_play)
     
-    obs, reward, done, info = env.reset() #It will wait for user ack
+    obs, dist, reward, done, info = env.reset() #It will wait for user ack
 
     while done == 0:
         mv = policy(obs[0])
-        obs, reward, done, info = env.step(mv)
+        obs, dist, reward, done, info = env.step(mv)
         time.sleep(0.1)
