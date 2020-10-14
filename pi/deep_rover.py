@@ -33,6 +33,7 @@ class UltraSonic():
     def get_distance(self):
         try:
             dist = self._distance()
+            print("UltraSonic - get_distance: ", dist)
             return dist
         # Reset by pressing CTRL + C
         except KeyboardInterrupt:
@@ -131,9 +132,9 @@ class SessionObserver():
             os.mkdir(folder)
         filename = datetime.today().strftime('%Y-%m-%d_%H-%M-%S-%M-%f.csv')
         self.filehandle = open(folder + "/" + filename, "w+")
-    def write(prev_img_loc, move, new_img_location, reward, done, info):
+    def write(self, prev_img_loc, move, new_img_location, reward, done, info):
         self.filehandle.write("%s, %s, %s, %s, %s, %s " % (prev_img_loc, move, new_img_location, reward, done, info))
-    def close():
+    def close(self):
         self.filehandle.close()
 
 class Env():
@@ -153,11 +154,14 @@ class Env():
             return True
 
     def reset(self):
-        while self.done and not self.user_ack:
-            time.sleep(1)
+        print("RESET: Self.done: ", self.done)
+        if self.done:
             print("Waiting for user ack on BlueDot")
-        
-        self.user_ack = False
+            while not self.user_ack:
+                time.sleep(1)
+            print("Recieved ACK")
+            self.user_ack = False
+            self._update_done(False)
         return self._observe()
 
     def _update_done(self, done):
@@ -167,25 +171,25 @@ class Env():
 
     def _observe(self):
         self.obs = self.cam.capture()
-        if self._is_safe():
+        if not self._is_safe():
             reward = 0
-            self._update_done(1)
+            self._update_done(True)
         else:
             reward = 1
-            self._update_done(0)
+            self._update_done(False)
         
         return (self.obs, reward, self.done, {})
 
     def step(self, move):
-        if done:
+        if self.done:
             return (self.obs, 0, self.done, {})
         if move == Move.FORWARD and not self._is_safe():
-            self._update_done(1)
+            self._update_done(True)
             return (self.obs, 0, self.done, {})
         prev_image = self.obs[1]
         self._step_robot(move)
         result = self._observe()
-        log(prev_image, int(move), result[0][1], result[1], result[2], result[3])
+        self.sessionObserver.write(prev_image, int(move), result[0][1], result[1], result[2], result[3])
         return result
 
     def _step_robot(self, move):
@@ -210,6 +214,6 @@ for game_play in range(100):
     obs, reward, done, info = env.reset() #It will wait for user ack
 
     while done == 0:
-        mv = policy(current_pic)
+        mv = policy(obs[0])
         obs, reward, done, info = env.step(mv)
         time.sleep(0.1)
