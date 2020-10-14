@@ -4,7 +4,7 @@ from signal import pause
 
 #cameradb = BlueDot(port=1)
 bd = BlueDot()
-robot = Robot(left=(7, 8), right=(10, 9))
+robot = Robot(left=(9, 10), right=(7, 8))
 
 def move(pos):
     print("Move!")
